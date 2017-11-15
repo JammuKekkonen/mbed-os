@@ -534,6 +534,15 @@ class RTL8195ACode:
     def binary_hook(t_self, resources, elf, binf):
         from tools.targets.REALTEK_RTL8195AM import rtl8195a_elf2bin
         rtl8195a_elf2bin(t_self, elf, binf)
+
+class ExternalHookScriptRunner(object):
+    @staticmethod
+    def post_bin_hook(t_self, _, __, binf):
+        command = t_self.target.post_binary_hook['command']
+        import os
+        command = command.replace("<target>", t_self.target.name).replace("<binf>", binf).replace("<toolchain>", t_self.__class__.__name__).replace("<bin_dir>", os.path.dirname(binf))
+        import subprocess
+        subprocess.call(command.split(" "))
 ################################################################################
 
 # Instantiate all public targets
