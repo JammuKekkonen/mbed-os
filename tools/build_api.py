@@ -425,7 +425,7 @@ def merge_region_list(region_list, destination, notify, padding=b'\xFF'):
             notify.info("  Filling region %s with %s" % (region.name, region.filename))
             part = intelhex_offset(region.filename, offset=region.start)
             part.start_addr = None
-            if part.segments().count == 1:
+            if len(part.segments()) == 1:
                 part_size = (part.maxaddr() - part.minaddr()) + 1
             else:
                 # make same assumption as in region builder; first segments must fit.

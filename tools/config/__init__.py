@@ -710,7 +710,7 @@ class Config(object):
             if part.minaddr() != rom_start:
                 raise ConfigException("bootloader executable does not "
                                       "start at 0x%x" % rom_start)
-            if part.segments().count == 1:
+            if len(part.segments()) == 1:
                 part_size = (part.maxaddr() - part.minaddr()) + 1
                 part_size = Config._align_ceiling(rom_start + part_size, self.sectors) - rom_start
             else:
