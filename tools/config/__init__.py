@@ -692,7 +692,7 @@ class Config(object):
         newstart = rom_start + integer(new_offset, 0)
         if newstart < start:
             raise ConfigException(
-                "Can not place % region inside previous region" % region_name)
+                "Can not place %r region inside previous region" % region_name)
         return newstart
 
     def _generate_bootloader_build(self, rom_start, rom_size):
@@ -710,8 +710,20 @@ class Config(object):
             if part.minaddr() != rom_start:
                 raise ConfigException("bootloader executable does not "
                                       "start at 0x%x" % rom_start)
-            part_size = (part.maxaddr() - part.minaddr()) + 1
-            part_size = Config._align_ceiling(rom_start + part_size, self.sectors) - rom_start
+            if part.segments().count == 1:
+                part_size = (part.maxaddr() - part.minaddr()) + 1
+                part_size = Config._align_ceiling(rom_start + part_size, self.sectors) - rom_start
+            else:
+                # assume first segment is at start
+                # second at the end
+                # rest outside regular ROM
+                if part.segments()[0][0] != 0x0:
+                    raise ConfigException("bootloader segments not in order")
+                part_size = part.segments()[0][1] - part.segments()[0][0]
+                part_size = Config._align_ceiling(rom_start + part_size, self.sectors) - rom_start
+                if self.target.restrict_size is None and self.target.app_offset:
+                    self.target.restrict_size = "0x%x" % (part.segments()[1][0] - int(self.target.app_offset, 0))
+
             yield Region("bootloader", rom_start, part_size, False,
                          filename)
             start = rom_start + part_size
@@ -725,6 +737,10 @@ class Config(object):
         if self.target.restrict_size is not None:
             new_size = int(self.target.restrict_size, 0)
             new_size = Config._align_floor(start + new_size, self.sectors) - start
+
+            if self.target.app_offset:
+                start = self._assign_new_offset(rom_start, start, self.target.app_offset, "application")
+
             yield Region("application", start, new_size, True, None)
             start += new_size
             if self.target.header_format and not self.target.bootloader_img:
@@ -734,9 +750,7 @@ class Config(object):
                 start, region = self._make_header_region(
                     start, self.target.header_format)
                 yield region
-            if self.target.app_offset:
-                start = self._assign_new_offset(
-                    rom_start, start, self.target.app_offset, "application")
+
             yield Region("post_application", start, rom_end - start,
                          False, None)
         else:
@@ -745,7 +759,7 @@ class Config(object):
                     rom_start, start, self.target.app_offset, "application")
             yield Region("application", start, rom_end - start,
                          True, None)
-        if start > rom_start + rom_size:
+        if start > rom_end:
             raise ConfigException("Not enough memory on device to fit all "
                                   "application regions")
     
