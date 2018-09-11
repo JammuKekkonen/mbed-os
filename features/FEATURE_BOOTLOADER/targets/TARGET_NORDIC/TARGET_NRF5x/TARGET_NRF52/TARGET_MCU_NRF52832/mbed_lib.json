@@ -3,8 +3,8 @@
     "target_overrides": {
         "*": {
             "target.bootloader_img": "mbed-bootloader-nrf52_dk.hex",
-            "target.app_offset": "0x1000"
-
+            "target.header_offset": "0xB000",
+            "target.app_offset": "0xB400"
         }
     }
 }
